@@ -5,38 +5,59 @@ var querystring = require('querystring');
 var blinkstick = require('blinkstick');
 
 var led = blinkstick.findFirst();
-
+var timer = null;
 var server = http.createServer(function(request, response) {
+  response.writeHead(200, {'Content-Type': 'application/json'});
+  if ('PUT' == request.method) {
   var uri = url.parse(request.url);
-  params = querystring.parse(uri.query);
-  if (params.rgb)  {
-    params.r = parseInt(params.rgb.substring(0,2), 16);
-    params.g = parseInt(params.rgb.substring(2,4), 16);
-    params.b = parseInt(params.rgb.substring(4,6), 16);
-  }
-
-  if (typeof(params.r) != 'undefined' &&
-      typeof(params.g) != 'undefined' &&
-      typeof(params.b) != 'undefined') {
-    led.getColour(function(or, og, ob) {
-      var rstep = (or - parseInt(params.r)) / 100.0;
-      var gstep = (og - parseInt(params.g)) / 100.0;
-      var bstep = (ob - parseInt(params.b)) / 100.0;
+    if (timer) clearInterval(timer);
+    params = querystring.parse(uri.query);
+    if (params.rgb)  {
+      params.r = parseInt(params.rgb.substring(0,2), 16);
+      params.g = parseInt(params.rgb.substring(2,4), 16);
+      params.b = parseInt(params.rgb.substring(4,6), 16);
+    }
   
-      var i = 0;
-      var timer = setInterval(function() {
-        i++;
-        led.setColour(
-            Math.floor(or - rstep*i), 
-            Math.floor(og - gstep*i), 
-            Math.floor(ob - bstep*i)
-        );
-        if (i == 100) clearInterval(timer);
-      }, 10);
+    var duration = 1000;
+    var steps = 100;
+    if (params.duration) {
+      duration = parseInt(params.duration); 
+    }
+    if (params.steps) {
+      steps = parseInt(params.steps);
+    }
+    if (typeof(params.r) != 'undefined' &&
+        typeof(params.g) != 'undefined' &&
+        typeof(params.b) != 'undefined') {
+      led.getColour(function(or, og, ob) {
+        var rstep = (or - parseInt(params.r)) / steps;
+        var gstep = (og - parseInt(params.g)) / steps;
+        var bstep = (ob - parseInt(params.b)) / steps;
+        var i = 0;
+        timer = setInterval(function() {
+          i++;
+          var r = Math.floor(or - rstep*i);
+          var g = Math.floor(og - gstep*i);
+          var b = Math.floor(ob - bstep*i);
+          led.setColour(r,g,b);
+          if (i == steps) {
+            response.end(JSON.stringify({'r':r, 'g':g, 'b':b}));
+            clearInterval(timer);
+          }
+        }, duration/steps);
+      });
+    }
+  } 
+  if ('GET' == request.method) {
+    led.getColour(function(r, g, b) {
+      response.end(JSON.stringify({'r':r, 'g':g, 'b':b}));
     });
   }
-  response.writeHead(200, {'Content-Type': 'text/plain'});
-  response.end('ok');
+
+  if ('DELETE' == request.method) {
+    led.turnOff();
+    response.end(JSON.stringify({'r':0, 'g':0, 'b':0}));
+  }
 });
 
 server.listen('8080');
