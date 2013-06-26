@@ -14,9 +14,7 @@ You might need to sudo if you are on linux
 `$ curl -X PUT "http://localhost:8080/?color=%23FF0000"`
 
 ## curl it to cycle between the colors
-```
-$ curl -X PUT
-`http://localhost:8080/?colors=%23FF0000&colors=%2300FF00&colors=%230000FF"`
+`$ curl -X PUT http://localhost:8080/?colors=%23FF0000&colors=%2300FF00&colors=%230000FF"`
 
 ## curl turn it off
 `$ curl -X DELETE "http://localhost:8080"`
